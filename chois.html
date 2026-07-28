@@ -1,1 +1,147 @@
-
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Chois — Checkliste</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root { --mittag: #3A7CA5; --abend: #B5651D; --bg: #F5F5F5; --text: #1A1A1A; --muted: #888; --radius: 12px; }
+body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 40px; }
+.top-bar { position: sticky; top: 0; z-index: 100; background: #1A1A1A; color: white; padding: 14px 18px 12px; display: flex; align-items: baseline; justify-content: space-between; }
+.top-bar h1 { font-size: 20px; font-weight: 700; }
+.top-bar .date-label { font-size: 12px; color: #AAA; }
+.day-tabs { display: flex; background: #111; border-bottom: 1px solid #333; }
+.day-tab { flex: 1; padding: 10px 6px; text-align: center; font-size: 14px; font-weight: 600; color: #666; cursor: pointer; border-bottom: 3px solid transparent; user-select: none; }
+.day-tab.active { color: white; border-bottom-color: white; }
+.progress-wrap { background: white; padding: 12px 18px 10px; border-bottom: 1px solid #E0E0E0; }
+.progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.progress-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.progress-count { font-size: 12px; font-weight: 700; }
+.progress-bar-bg { height: 6px; background: #E5E5E5; border-radius: 99px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 99px; background: var(--mittag); transition: width 0.3s ease; }
+.section { margin: 16px 12px 0; }
+.section-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px 12px 0 0; color: white; font-size: 15px; font-weight: 700; }
+.section-header.mittag { background: var(--mittag); }
+.section-header.abend { background: var(--abend); }
+.time-badge { margin-left: auto; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 99px; }
+.items-list { background: white; border-radius: 0 0 12px 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.item { display: flex; align-items: center; padding: 13px 14px; border-bottom: 1px solid #F0F0F0; cursor: pointer; gap: 12px; min-height: 52px; }
+.item:last-child { border-bottom: none; }
+.item.blocked { opacity: 0.38; cursor: default; background: #FAFAFA; }
+.item.done .item-text { text-decoration: line-through; color: #AAAAAA; }
+.check-box { width: 26px; height: 26px; border-radius: 7px; border: 2px solid #CCC; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.mittag-section .item.done .check-box { background: var(--mittag); border-color: var(--mittag); }
+.abend-section .item.done .check-box { background: var(--abend); border-color: var(--abend); }
+.check-icon { display: none; }
+.item.done .check-icon { display: block; }
+.item-body { flex: 1; }
+.item-text { font-size: 15px; line-height: 1.35; }
+.item-note { font-size: 11px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+.item-note.urgent { color: #C0392B; font-weight: 600; }
+.blocked-label { font-size: 11px; color: #BBB; font-weight: 600; margin-left: auto; flex-shrink: 0; }
+.reset-wrap { margin: 20px 12px 0; text-align: center; }
+.reset-btn { background: none; border: 1.5px solid #CCC; border-radius: 99px; padding: 9px 24px; font-size: 13px; color: #888; cursor: pointer; font-family: inherit; }
+</style>
+</head>
+<body>
+<div class="top-bar"><h1>Chois Checkliste</h1><span class="date-label" id="dateLabel"></span></div>
+<div class="day-tabs" id="dayTabs"></div>
+<div class="progress-wrap">
+<div class="progress-row"><span class="progress-label">Fortschritt heute</span><span class="progress-count" id="progressCount">0 / 0</span></div>
+<div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+</div>
+<div id="content"></div>
+<div class="reset-wrap"><button class="reset-btn" onclick="resetDay()">Alle Häkchen zurücksetzen</button></div>
+<script>
+var DAYS=["So","Mo","Di","Mi","Do","Fr","Sa"],WORK=["Di","Mi","Do","Fr","Sa"],checks={},activeDay=null;
+var MITTAG=[
+{t:"Paravent aufstellen",n:"★ bis 11:30"},
+{t:"Lichter, Musik, Spülmaschine, Kassensystem & Heißwasserspender einschalten",n:"★ bis 11:30"},
+{t:"Fensterbereich putzen, Kerzen austauschen, Tische & Stühle ordnen",n:"★ bis 11:30"},
+{t:"Reservierungen & reservierte Plätze kontrollieren",n:"★ bis 11:30"},
+{t:"Vorhänge schließen (im Sommer)",n:"★ bis 11:30"},
+{t:"Heizung einschalten (im Winter)"},
+{t:"Getränkekühlschrank kontrollieren & fehlende Sachen auffüllen",n:"★ bis 11:30"},
+{t:"Getränke bestellen",o:["Mi"]},
+{t:"Gochujang & Sojasoße auffüllen (inkl. Verpackungssoßen)"},
+{t:"Kerzengläser reinigen",o:["Mi"]},
+{t:"Pflanzen gießen",o:["Do"]},
+{t:"Beilagen herausnehmen & vorbereiten"},
+{t:"Lappen waschen & bereitlegen"},
+{t:"Reservierungsliste für den Abend erstellen"},
+{t:"Wagen reinigen"},
+{t:"Beilagen vorportionieren, Salat vorbereiten",o:["Sa"]},
+{t:"Getränke auffüllen & bereitstellen"},
+{t:"Abendvorbereitung machen"},
+{t:"Behälter für Beilagen ordnen"},
+{t:"Servietten falten (wenn nötig)"},
+{t:"Heißwasserspender mit Wasser füllen (im Winter)"},
+{t:"Spülmaschine fertig machen & ausschalten"},
+{t:"Musik ausschalten"},
+{t:"Alle Lichter ausschalten"}
+];
+var ABEND=[
+{t:"Abendreservierungen kontrollieren",n:"★ bis 17:30"},
+{t:"Restaurant- & Treppenlichter einschalten, Musik anmachen",n:"★ bis 17:30"},
+{t:"Kerzen anzünden (außer an heißen Tagen)",n:"★ bis 17:30"},
+{t:"Beilagen & Salat vorbereiten"},
+{t:"Sofa im Raum reinigen"},
+{t:"Stühle abwischen",o:["Do"]},
+{t:"Vorbereitung für das Mittagsgeschäft am nächsten Tag"},
+{t:"Getränke sortieren & auffüllen"},
+{t:"Fehlende Getränke kontrollieren",o:["Sa"]},
+{t:"Getränkebestellung notieren",o:["Di"]},
+{t:"Spülmaschine fertig machen (samstags: Kalk entfernen)"},
+{t:"Reservierungsliste für das Mittagessen erstellen",o:["Fr"]},
+{t:"Theke aufräumen & abschließen"},
+{t:"Behälter für Beilagen ordnen"},
+{t:"Sojasoße- & Gochujang-Behälter aufräumen & ordnen"},
+{t:"Heißwasserspender mit Wasser füllen"},
+{t:"Kasse abschließen"},
+{t:"Lichter ausschalten (außer Nr. 1, 4 und 7)"},
+{t:"Heizung ausschalten (im Winter)"},
+{t:"Ventilator ausschalten"},
+{t:"Papiermülleimer rausstellen",o:["Sa"]},
+{t:"Leere Getränkekisten ordnen",o:["Mi"]},
+{t:"Pflanzen ans Fenster stellen",o:["Sa"]},
+{t:"Paravent zusammenklappen"},
+{t:"Blumentöpfe sammeln oder in den Flur stellen"},
+{t:"Vorhänge schließen (wenn es am nächsten Tag warm wird)"},
+{t:"Servietten falten (wenn nötig)"},
+{t:"Musik ausschalten"}
+];
+function blocked(item){return item.o&&item.o.indexOf(activeDay)<0;}
+function renderTabs(){var w=document.getElementById("dayTabs");w.innerHTML="";WORK.forEach(function(d){var el=document.createElement("div");el.className="day-tab"+(d===activeDay?" active":"");el.textContent=d;el.onclick=function(){activeDay=d;checks={};renderTabs();renderContent();};w.appendChild(el);});}
+function renderContent(){var c=document.getElementById("content");c.innerHTML="";c.appendChild(makeSection("Mittag","mittag","M","☀","bis 11:30",MITTAG));c.appendChild(Object.assign(document.createElement("div"),{style:"height:16px"}));c.appendChild(makeSection("Abend","abend","A","🌙","bis 17:30",ABEND));updateProgress();}
+function makeSection(title,cls,pfx,icon,deadline,items){
+var wrap=document.createElement("div");wrap.className="section";
+var hdr=document.createElement("div");hdr.className="section-header "+cls;
+hdr.innerHTML=icon+" "+title+'<span class="time-badge">'+deadline+"</span>";
+wrap.appendChild(hdr);
+var list=document.createElement("div");list.className="items-list "+cls+"-section";
+items.forEach(function(item,i){
+var key=pfx+"_"+i,bl=blocked(item),done=!bl&&!!checks[key];
+var row=document.createElement("div");
+row.className="item"+(bl?" blocked":"")+(done?" done":"");
+row.style.background=bl?"#FAFAFA":(i%2===0?"#FFFFFF":"#F7F7F7");
+row.innerHTML='<div class="check-box"><svg class="check-icon" width="14" height="11" viewBox="0 0 14 11" fill="none"><path d="M1.5 5.5L5.5 9.5L12.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="item-body"><div class="item-text">'+item.t+'</div>'+(item.n&&!bl?'<div class="item-note'+(item.n.indexOf("★")>=0?" urgent":"")+'">'+item.n+"</div>":"")+'</div>'+(bl?'<span class="blocked-label">'+item.o.join("/")+" only</span>":"");
+if(!bl){row.onclick=function(){checks[key]=!checks[key];row.classList.toggle("done",checks[key]);updateProgress();};}
+list.appendChild(row);
+});
+wrap.appendChild(list);return wrap;}
+function updateProgress(){
+var all=[].concat(MITTAG.map(function(it,i){return{it:it,k:"M_"+i};}),ABEND.map(function(it,i){return{it:it,k:"A_"+i};}));
+var active=all.filter(function(x){return!blocked(x.it);});
+var done=active.filter(function(x){return!!checks[x.k];}).length;
+var total=active.length,pct=total>0?Math.round(done/total*100):0;
+document.getElementById("progressCount").textContent=done+" / "+total;
+document.getElementById("progressFill").style.width=pct+"%";}
+function resetDay(){if(confirm("Alle Häkchen zurücksetzen?")){checks={};renderContent();}}
+function detectToday(){var d=new Date().getDay(),name=DAYS[d];return WORK.indexOf(name)>=0?name:"Di";}
+document.getElementById("dateLabel").textContent=new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
+activeDay=detectToday();renderTabs();renderContent();
+</script>
+</body>
+</html>
