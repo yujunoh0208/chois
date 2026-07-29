@@ -9,20 +9,25 @@
 <title>Chois — Checkliste</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-:root { --mittag: #3A7CA5; --mittag-light: #EAF3F9; --mittag-mid: #C5D8E5; --abend: #B5651D; --abend-light: #FDF3E7; --abend-mid: #E8D5BE; --bg: #F5F5F5; --text: #1A1A1A; --muted: #888; --radius: 12px; }
+:root { --mittag: #3A7CA5; --abend: #B5651D; --bg: #F5F5F5; --text: #1A1A1A; --muted: #888; --radius: 12px; }
 body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 40px; }
 .top-bar { position: sticky; top: 0; z-index: 100; background: #1A1A1A; color: white; padding: 14px 18px 12px; display: flex; align-items: baseline; justify-content: space-between; }
 .top-bar h1 { font-size: 20px; font-weight: 700; }
 .top-bar .date-label { font-size: 13px; color: #AAA; }
-.day-tabs { display: flex; background: #111; border-bottom: 1px solid #333; }
-.day-tab { flex: 1; padding: 10px 6px; text-align: center; font-size: 14px; font-weight: 600; color: #666; cursor: pointer; border-bottom: 3px solid transparent; transition: color 0.15s, border-color 0.15s; user-select: none; }
+.day-tabs { position: sticky; top: 49px; z-index: 99; display: flex; background: #111; border-bottom: 1px solid #333; }
+.day-tab { flex: 1; padding: 10px 6px; text-align: center; font-size: 14px; font-weight: 600; color: #666; cursor: pointer; border-bottom: 3px solid transparent; user-select: none; }
 .day-tab.active { color: white; border-bottom-color: white; }
-.progress-wrap { background: white; padding: 12px 18px 10px; border-bottom: 1px solid #E0E0E0; }
-.progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.progress-label { font-size: 12px; color: var(--muted); font-weight: 500; }
-.progress-count { font-size: 12px; font-weight: 700; }
-.progress-bar-bg { height: 6px; background: #E5E5E5; border-radius: 99px; overflow: hidden; }
-.progress-bar-fill { height: 100%; border-radius: 99px; background: #3A7CA5; transition: width 0.3s ease; }
+.sticky-progress { position: sticky; top: 93px; z-index: 98; background: white; border-bottom: 1px solid #E0E0E0; }
+.progress-wrap { padding: 10px 18px 8px; }
+.progress-tabs { display: flex; border-bottom: 1px solid #EEE; }
+.progress-tab { flex: 1; padding: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #AAA; cursor: pointer; border-bottom: 2px solid transparent; }
+.progress-tab.active { color: var(--mittag); border-bottom-color: var(--mittag); }
+.progress-tab.active.abend { color: var(--abend); border-bottom-color: var(--abend); }
+.progress-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 5px; }
+.progress-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+.progress-count { font-size: 11px; font-weight: 700; }
+.progress-bar-bg { height: 5px; background: #E5E5E5; border-radius: 99px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s ease; }
 .section { margin: 16px 12px 0; }
 .section-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px 12px 0 0; color: white; font-size: 15px; font-weight: 700; }
 .section-header.mittag { background: var(--mittag); }
@@ -51,16 +56,25 @@ body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; backgrou
 <body>
 <div class="top-bar"><h1>Chois Checkliste</h1><span class="date-label" id="dateLabel"></span></div>
 <div class="day-tabs" id="dayTabs"></div>
-<div class="progress-wrap">
-  <div class="progress-row"><span class="progress-label">Fortschritt heute</span><span class="progress-count" id="progressCount">0 / 0</span></div>
-  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+<div class="sticky-progress">
+  <div class="progress-tabs">
+    <div class="progress-tab active" id="ptab-all" onclick="switchProgressTab('all')">Gesamt</div>
+    <div class="progress-tab" id="ptab-mittag" onclick="switchProgressTab('mittag')">Mittag</div>
+    <div class="progress-tab" id="ptab-abend" onclick="switchProgressTab('abend')">Abend</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-row"><span class="progress-label" id="progressLabel">Fortschritt heute</span><span class="progress-count" id="progressCount">0 / 0</span></div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
 </div>
 <div id="content"></div>
 <div class="reset-wrap"><button class="reset-btn" onclick="resetDay()">Alle Häkchen zurücksetzen</button></div>
+
 <script>
-var DAYS=["So","Mo","Di","Mi","Do","Fr","Sa"],WORK=["Di","Mi","Do","Fr","Sa"],checks={},activeDay=null;
+var DAYS=["So","Mo","Di","Mi","Do","Fr","Sa"],WORK=["Di","Mi","Do","Fr","Sa"];
+var checks={},activeDay=null,activeProgressTab="all";
+
 var MITTAG=[
-{t:"Paravent aufstellen",n:"★ bis 11:30"},
 {t:"Lichter, Musik, Spülmaschine, Kassensystem & Heißwasserspender einschalten",n:"★ bis 11:30"},
 {t:"Fensterbereich putzen, Kerzen austauschen, Tische & Stühle ordnen",n:"★ bis 11:30"},
 {t:"Reservierungen & reservierte Plätze kontrollieren",n:"★ bis 11:30"},
@@ -85,6 +99,7 @@ var MITTAG=[
 {t:"Musik ausschalten"},
 {t:"Alle Lichter ausschalten"}
 ];
+
 var ABEND=[
 {t:"Abendreservierungen kontrollieren",n:"★ bis 17:30"},
 {t:"Restaurant- & Treppenlichter einschalten, Musik anmachen",n:"★ bis 17:30"},
@@ -109,42 +124,119 @@ var ABEND=[
 {t:"Papiermülleimer rausstellen",o:["Sa"]},
 {t:"Leere Getränkekisten ordnen",o:["Mi"]},
 {t:"Pflanzen ans Fenster stellen",o:["Sa"]},
-{t:"Paravent zusammenklappen"},
 {t:"Blumentöpfe sammeln oder in den Flur stellen"},
 {t:"Vorhänge schließen (wenn es am nächsten Tag warm wird)"},
 {t:"Servietten falten (wenn nötig)"},
 {t:"Musik ausschalten"}
 ];
-function blocked(item){return item.o&&item.o.indexOf(activeDay)<0;}
-function renderTabs(){var w=document.getElementById("dayTabs");w.innerHTML="";WORK.forEach(function(d){var el=document.createElement("div");el.className="day-tab"+(d===activeDay?" active":"");el.textContent=d;el.onclick=function(){activeDay=d;checks={};renderTabs();renderContent();};w.appendChild(el);});}
-function renderContent(){var c=document.getElementById("content");c.innerHTML="";c.appendChild(makeSection("Mittag","mittag","M","☀","bis 11:30",MITTAG));var sp=document.createElement("div");sp.style.height="16px";c.appendChild(sp);c.appendChild(makeSection("Abend","abend","A","🌙","bis 17:30",ABEND));updateProgress();}
-function makeSection(title,cls,pfx,icon,deadline,items){
-var wrap=document.createElement("div");wrap.className="section";
-var hdr=document.createElement("div");hdr.className="section-header "+cls;
-hdr.innerHTML=icon+" "+title+'<span class="time-badge">'+deadline+"</span>";
-wrap.appendChild(hdr);
-var list=document.createElement("div");list.className="items-list "+cls+"-section";
-items.forEach(function(item,i){
-var key=pfx+"_"+i,bl=blocked(item),done=!bl&&!!checks[key];
-var row=document.createElement("div");
-row.className="item"+(bl?" blocked":"")+(done?" done":"");
-row.style.background=bl?"#FAFAFA":(i%2===0?"#FFFFFF":"#F7F7F7");
-row.innerHTML='<div class="check-box"><svg width="14" height="11" viewBox="0 0 14 11" fill="none"><path d="M1.5 5.5L5.5 9.5L12.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="item-body"><div class="item-text">'+item.t+'</div>'+(item.n&&!bl?'<div class="item-note'+(item.n.indexOf("★")>=0?" urgent":"")+'">'+item.n+"</div>":"")+'</div>'+(bl?'<span class="blocked-label">'+item.o.join("/")+" only</span>":"");
-if(!bl){row.onclick=function(){checks[key]=!checks[key];row.classList.toggle("done",checks[key]);updateProgress();};}
-list.appendChild(row);
-});
-wrap.appendChild(list);return wrap;}
-function updateProgress(){
-var all=[].concat(MITTAG.map(function(it,i){return{it:it,k:"M_"+i};}),ABEND.map(function(it,i){return{it:it,k:"A_"+i};}));
-var active=all.filter(function(x){return!blocked(x.it);});
-var done=active.filter(function(x){return!!checks[x.k];}).length;
-var total=active.length,pct=total>0?Math.round(done/total*100):0;
-document.getElementById("progressCount").textContent=done+" / "+total;
-document.getElementById("progressFill").style.width=pct+"%";}
-function resetDay(){if(confirm("Alle Häkchen zurücksetzen?")){checks={};renderContent();}}
-document.getElementById("dateLabel").textContent=new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
-activeDay=(function(){var d=new Date().getDay(),n=DAYS[d];return WORK.indexOf(n)>=0?n:"Di";})();
-renderTabs();renderContent();
+
+// 일요일 기준 주간 초기화
+function getWeekKey() {
+  var d = new Date();
+  var day = d.getDay(); // 0=So
+  var monday = new Date(d);
+  monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return monday.getFullYear()+"-"+(monday.getMonth()+1)+"-"+monday.getDate();
+}
+
+function loadChecks() {
+  var weekKey = getWeekKey();
+  var saved = localStorage.getItem("chois_week");
+  if (saved !== weekKey) {
+    localStorage.setItem("chois_week", weekKey);
+    localStorage.removeItem("chois_checks");
+    return {};
+  }
+  try { return JSON.parse(localStorage.getItem("chois_checks") || "{}"); }
+  catch(e) { return {}; }
+}
+
+function saveChecks() {
+  localStorage.setItem("chois_checks", JSON.stringify(checks));
+}
+
+function blocked(item) { return item.o && item.o.indexOf(activeDay) < 0; }
+
+function renderTabs() {
+  var w = document.getElementById("dayTabs");
+  w.innerHTML = "";
+  WORK.forEach(function(d) {
+    var el = document.createElement("div");
+    el.className = "day-tab" + (d === activeDay ? " active" : "");
+    el.textContent = d;
+    el.onclick = function() { activeDay = d; renderTabs(); renderContent(); };
+    w.appendChild(el);
+  });
+}
+
+function switchProgressTab(tab) {
+  activeProgressTab = tab;
+  ["all","mittag","abend"].forEach(function(t) {
+    var el = document.getElementById("ptab-"+t);
+    el.className = "progress-tab" + (t === tab ? " active" + (t === "abend" ? " abend" : "") : "");
+  });
+  updateProgress();
+}
+
+function renderContent() {
+  var c = document.getElementById("content");
+  c.innerHTML = "";
+  c.appendChild(makeSection("Mittag","mittag","M","☀","bis 11:30",MITTAG));
+  var sp = document.createElement("div"); sp.style.height = "16px"; c.appendChild(sp);
+  c.appendChild(makeSection("Abend","abend","A","🌙","bis 17:30",ABEND));
+  updateProgress();
+}
+
+function makeSection(title,cls,pfx,icon,deadline,items) {
+  var wrap = document.createElement("div"); wrap.className = "section";
+  var hdr = document.createElement("div"); hdr.className = "section-header "+cls;
+  hdr.innerHTML = icon+" "+title+'<span class="time-badge">'+deadline+"</span>";
+  wrap.appendChild(hdr);
+  var list = document.createElement("div"); list.className = "items-list "+cls+"-section";
+  items.forEach(function(item,i) {
+    var key = activeDay+"_"+pfx+"_"+i, bl = blocked(item), done = !bl && !!checks[key];
+    var row = document.createElement("div");
+    row.className = "item"+(bl?" blocked":"")+(done?" done":"");
+    row.style.background = bl ? "#FAFAFA" : (i%2===0 ? "#FFFFFF" : "#F7F7F7");
+    row.innerHTML = '<div class="check-box"><svg width="14" height="11" viewBox="0 0 14 11" fill="none"><path d="M1.5 5.5L5.5 9.5L12.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="item-body"><div class="item-text">'+item.t+'</div>'+(item.n&&!bl?'<div class="item-note'+(item.n.indexOf("★")>=0?" urgent":"")+'">'+item.n+"</div>":"")+'</div>'+(bl?'<span class="blocked-label">'+item.o.join("/")+" only</span>":"");
+    if (!bl) {
+      row.onclick = function() {
+        checks[key] = !checks[key];
+        row.classList.toggle("done", checks[key]);
+        saveChecks();
+        updateProgress();
+      };
+    }
+    list.appendChild(row);
+  });
+  wrap.appendChild(list); return wrap;
+}
+
+function updateProgress() {
+  var mittagItems = MITTAG.map(function(it,i){return{it:it,k:activeDay+"_M_"+i};});
+  var abendItems = ABEND.map(function(it,i){return{it:it,k:activeDay+"_A_"+i};});
+  var items = activeProgressTab==="mittag" ? mittagItems : activeProgressTab==="abend" ? abendItems : mittagItems.concat(abendItems);
+  var active = items.filter(function(x){return!blocked(x.it);});
+  var done = active.filter(function(x){return!!checks[x.k];}).length;
+  var total = active.length, pct = total>0?Math.round(done/total*100):0;
+  var color = activeProgressTab==="abend" ? "#B5651D" : "#3A7CA5";
+  document.getElementById("progressCount").textContent = done+" / "+total;
+  document.getElementById("progressFill").style.width = pct+"%";
+  document.getElementById("progressFill").style.background = color;
+  document.getElementById("progressLabel").textContent = activeProgressTab==="mittag"?"Mittag Fortschritt":activeProgressTab==="abend"?"Abend Fortschritt":"Fortschritt heute";
+}
+
+function resetDay() {
+  if (!confirm("Alle Häkchen zurücksetzen?")) return;
+  MITTAG.forEach(function(_,i){delete checks[activeDay+"_M_"+i];});
+  ABEND.forEach(function(_,i){delete checks[activeDay+"_A_"+i];});
+  saveChecks(); renderContent();
+}
+
+document.getElementById("dateLabel").textContent = new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
+checks = loadChecks();
+activeDay = (function(){var d=new Date().getDay(),n=DAYS[d];return WORK.indexOf(n)>=0?n:"Di";})();
+renderTabs(); renderContent();
 </script>
 </body>
 </html>
